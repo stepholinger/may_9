@@ -1,1 +1,3 @@
-*MSEED
+*.MSEED
+data/*
+*.png
