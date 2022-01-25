@@ -1,3 +1,4 @@
-*.MSEED
 data/*
+outputs/*
+*.MSEED
 *.png
