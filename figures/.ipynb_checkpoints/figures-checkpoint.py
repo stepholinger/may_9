@@ -245,7 +245,7 @@ def plot_big_event_backazimuths(backazimuths,freq,array_centroid,station_grid_co
     ax_polar.set_theta_direction(-1)
 
     for i in range(len(backazimuths)):
-        radius,bins = np.histogram(backazimuths[i]*np.pi/180,bins=np.linspace(0,2*np.pi,int(360))
+        radius,bins = np.histogram(backazimuths[i]*np.pi/180,bins=np.linspace(0,2*np.pi,int(360)))
         patches = ax_polar.bar(bins[:-1], radius*3, zorder=1, align='edge', width=np.diff(bins),
                          edgecolor='black',facecolor=colors[i],fill=True, linewidth=1,alpha = .5)
 
