@@ -449,7 +449,7 @@ def polarization_analysis(l):
         if not l.first_stat:
             print("Skipped event at "  + str(start_time) + " due to indeterminate first arrival\n")
             continue
-            
+
         # loop though stations to perform PCA on all windows in the event on each station's data
         for s in range(len(l.stations)):
 
