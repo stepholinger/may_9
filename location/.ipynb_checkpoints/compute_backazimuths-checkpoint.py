@@ -46,6 +46,7 @@ def make_results_object(l):
     baz_object.backazimuths[:] = np.NaN
     baz_object.uncertainties = np.empty((l.num_detections),'float64')
     baz_object.uncertainties[:] = np.NaN
+    baz_object.all_windows_backazimuths = []
     return baz_object
 
 
@@ -212,7 +213,7 @@ def compute_pca(st,l):
                     first_components = correct_pca_distance(pca.components_[0,:],l)
                 if l.pca_correction == "sector":
                     first_components = correct_pca_sector(pca.components_[0,:],l)
-
+                
                 # save result
                 first_component_vect = np.vstack((first_component_vect,first_components))
 
@@ -222,7 +223,6 @@ def compute_pca(st,l):
         else:
             # add zeros if we didn't run PCA on the window due to emptiness
             first_component_vect = np.vstack((first_component_vect,[np.nan,np.nan]))
-
     return first_component_vect
 
 
@@ -413,6 +413,7 @@ def polarization_analysis(l):
     event_baz_vect[:] = np.nan
     event_uncertainty_vect = np.empty((num_detections_today),'float64')
     event_uncertainty_vect[:] = np.nan
+    all_first_component_sums = []
     
     # run polarization analysis for all events in the current file / on the current day
     for i in range(num_detections_today):
@@ -420,8 +421,8 @@ def polarization_analysis(l):
         # make arrays for storing PCA results
         l.trace_len = (detection_times_today[i][1]-detection_times_today[i][0]).seconds
         l.num_steps = int((l.trace_len-l.win_len)/l.slide)+1
-        all_first_components = np.empty((l.num_steps,2,len(l.stations)),"float64")
-        all_first_components[:,:,:] = np.nan
+        first_components = np.empty((l.num_steps,2,len(l.stations)),"float64")
+        first_components[:,:,:] = np.nan
     
         # get UTCDateTime and current date for convenience
         detection_utc_time = obspy.UTCDateTime(detection_times_today[i][0])
@@ -458,10 +459,11 @@ def polarization_analysis(l):
                 continue
                 
             # compute pca components for all windows in the event
-            all_first_components[:,:,s] = compute_pca(st_event.select(station=l.stations[s]),l)
+            first_components[:,:,s] = compute_pca(st_event.select(station=l.stations[s]),l)
         
         # sum results (this is vector sum across stations of pca first components for each window)
-        first_component_sums = np.nansum(all_first_components,axis=2)
+        first_component_sums = np.nansum(first_components,axis=2)
+        all_first_component_sums.append(first_component_sums)
         
         # take average weighted by norm of PCA component sums to get single mean event backazimuth
         norms = np.linalg.norm(first_component_sums,axis=1)
@@ -472,7 +474,7 @@ def polarization_analysis(l):
          print("Finished with " + str(st[0].stats.starttime.date)+" (no detections) \n")   
     else:
         print("Finished with " + str(detection_times_today[0][0].date())+"\n")
-    return event_baz_vect,event_uncertainty_vect,indices
+    return event_baz_vect,event_uncertainty_vect,all_first_component_sums,indices
 
 
 
@@ -509,9 +511,10 @@ def compute_backazimuths(l):
     multiprocessing.freeze_support()
     p = multiprocessing.Pool(processes=l.n_procs)
     for result in p.imap_unordered(polarization_analysis,inputs):
-        b.backazimuths[result[2][0]:result[2][1]] = result[0]
-        b.uncertainties[result[2][0]:result[2][1]] = result[1]
-
+        b.backazimuths[result[3][0]:result[3][1]] = result[0]
+        b.uncertainties[result[3][0]:result[3][1]] = result[1]
+        b.all_windows_backazimuths.append(result[2][0])
+        
         # open output file, save result vector, and close output file
         baz_file = open(l.filename+".pickle", "wb")
         pickle.dump(b, baz_file)
