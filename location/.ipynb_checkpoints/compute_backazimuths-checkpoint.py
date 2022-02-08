@@ -193,8 +193,8 @@ def compute_pca(st,l):
     # itertate through data in windows
     for n in range(l.num_steps):
         # get current window
-        start_ind = n * l.slide * l.fs
-        end_ind = start_ind + l.win_len*l.fs
+        start_ind = int(n * l.slide * l.fs)
+        end_ind = int(start_ind + l.win_len*l.fs)
         X = horz_data[start_ind:end_ind,:]
         # only progress if matrix of data is not empty
         if X.size > 0:
